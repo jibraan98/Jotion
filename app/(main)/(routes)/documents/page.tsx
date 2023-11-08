@@ -1,71 +1,56 @@
 "use client";
 
-import { useMutation, useQuery } from "convex/react";
-import dynamic from "next/dynamic";
-import { useMemo } from "react";
+import Image from "next/image";
+import { useUser } from "@clerk/clerk-react";
+import { PlusCircle } from "lucide-react";
+import { useMutation } from "convex/react";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 
 import { api } from "@/convex/_generated/api";
-import { Id } from "@/convex/_generated/dataModel";
-import  Toolbar  from "@/components/toolbar";
-import { Cover } from "@/components/cover";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
 
-interface DocumentIdPageProps {
-  params: {
-    documentId: Id<"documents">;
-  };
-};
+const DocumentsPage = () => {
+  const router = useRouter();
+  const { user } = useUser();
+  const create = useMutation(api.documents.create);
 
-const DocumentIdPage = ({
-  params
-}: DocumentIdPageProps) => {
-  const Editor = useMemo(() => dynamic(() => import("@/components/editor"), { ssr: false }) ,[]);
+  const onCreate = () => {
+    const promise = create({ title: "Untitled" })
+      .then((documentId) => router.push(`/documents/${documentId}`))
 
-  const document = useQuery(api.documents.getById, {
-    documentId: params.documentId
-  });
-
-  const update = useMutation(api.documents.update);
-
-  const onChange = (content: string) => {
-    update({
-      id: params.documentId,
-      content
+    toast.promise(promise, {
+      loading: "Creating a new note...",
+      success: "New note created!",
+      error: "Failed to create a new note."
     });
   };
 
-  if (document === undefined) {
-    return (
-      <div>
-        <Cover.Skeleton />
-        <div className="md:max-w-3xl lg:max-w-4xl mx-auto mt-10">
-          <div className="space-y-4 pl-8 pt-4">
-            <Skeleton className="h-14 w-[50%]" />
-            <Skeleton className="h-4 w-[80%]" />
-            <Skeleton className="h-4 w-[40%]" />
-            <Skeleton className="h-4 w-[60%]" />
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (document === null) {
-    return <div>Not found</div>
-  }
-
   return ( 
-    <div className="pb-40">
-      <Cover url={document.coverImage} />
-      <div className="md:max-w-3xl lg:max-w-4xl mx-auto">
-        <Toolbar initialData={document} />
-        <Editor
-          onChange={onChange}
-          initialContent={document.content}
-        />
-      </div>
+    <div className="h-full flex flex-col items-center justify-center space-y-4">
+      <Image
+        src="/empty.png"
+        height="300"
+        width="300"
+        alt="Empty"
+        className="dark:hidden"
+      />
+      <Image
+        src="/empty-dark.png"
+        height="300"
+        width="300"
+        alt="Empty"
+        className="hidden dark:block"
+      />
+      <h2 className="text-lg font-medium">
+        Welcome to {user?.firstName}&apos;s Jotion
+      </h2>
+      <Button onClick={onCreate}>
+        <PlusCircle className="h-4 w-4 mr-2" />
+        Create a note
+      </Button>
     </div>
    );
 }
  
-export default DocumentIdPage;
+export default DocumentsPage;
